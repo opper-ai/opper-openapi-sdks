@@ -80,4 +80,29 @@ describe("computeSectionHash", () => {
     const hash = computeSectionHash(makeFile({ type: "index" }), index);
     expect(hash).toMatch(/^[a-f0-9]{64}$/);
   });
+
+  it("produces consistent hash for readme covering full spec", async () => {
+    const index = await buildSpecIndex(FIXTURE);
+    const file = makeFile({ type: "readme" });
+    const hash1 = computeSectionHash(file, index);
+    const hash2 = computeSectionHash(file, index);
+    expect(hash1).toBe(hash2);
+    expect(hash1).toMatch(/^[a-f0-9]{64}$/);
+
+    // readme hash should differ from all other types
+    const types = computeSectionHash(makeFile({ type: "types" }), index);
+    const clientBase = computeSectionHash(
+      makeFile({ type: "client-base" }),
+      index
+    );
+    const packageConfig = computeSectionHash(
+      makeFile({ type: "package-config" }),
+      index
+    );
+    const idx = computeSectionHash(makeFile({ type: "index" }), index);
+    expect(hash1).not.toBe(types);
+    expect(hash1).not.toBe(clientBase);
+    expect(hash1).not.toBe(packageConfig);
+    expect(hash1).not.toBe(idx);
+  });
 });

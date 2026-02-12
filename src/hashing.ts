@@ -53,6 +53,18 @@ export function computeSectionHash(
         Array.from(specIndex.pathsByTag.keys()).sort()
       );
       break;
+
+    case "readme":
+      parts.push(specIndex.info);
+      parts.push(specIndex.servers);
+      parts.push(Array.from(specIndex.pathsByTag.keys()).sort());
+      parts.push(
+        Array.from(specIndex.schemas.entries()).sort(([a], [b]) =>
+          a.localeCompare(b)
+        )
+      );
+      parts.push(specIndex.security);
+      break;
   }
 
   return sha256(JSON.stringify(parts));

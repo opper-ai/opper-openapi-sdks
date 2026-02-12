@@ -16,7 +16,7 @@ function parseTscErrors(output: string): VerifyError[] {
 
 export const typescript: LanguageProfile = {
   name: "typescript",
-  extensions: [".ts", ".json"],
+  extensions: [".ts", ".json", ".md"],
   plannerInstructions: `You are planning a TypeScript SDK. Follow these conventions:
 
 File structure (MUST include all of these):
@@ -26,6 +26,7 @@ File structure (MUST include all of these):
 - src/client-base.ts for the base HTTP client class (type: "client-base", order: 2)
 - src/clients/{tag-slug}.ts for each tag's client class (type: "client", order: 3)
 - src/index.ts that re-exports everything (type: "index", order: 4)
+- README.md at root (type: "readme", id: "readme", order: 5)
 
 Naming conventions:
 - Use PascalCase for types and interfaces
@@ -95,6 +96,15 @@ Types (src/types.ts):
 tsconfig.json:
 - When writing tsconfig.json, output valid JSON with the exact settings from the plan
 
+README.md (type: "readme"):
+- Use read_generated_file to read the actual generated code for accurate examples
+- Include: API title and description from the spec
+- Installation: npm install instructions using the package name from package.json
+- Quickstart: a minimal working example showing client initialization and one API call
+- Client usage: document each client class and its methods with brief examples
+- Types reference: list the main exported types/interfaces
+- Write in Markdown format
+
 Do NOT:
 - Import from external packages (except devDependencies in package.json)
 - Use enum (use string literal unions instead)
@@ -107,5 +117,5 @@ Do NOT:
     parseErrors: parseTscErrors,
   },
 
-  fileTypes: ["package-config", "types", "client-base", "client", "index"],
+  fileTypes: ["package-config", "types", "client-base", "client", "index", "readme"],
 };

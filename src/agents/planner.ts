@@ -13,7 +13,7 @@ const SdkFileSchema = z.object({
   outputPath: z
     .string()
     .describe("Relative file path, e.g. 'package.json', 'src/types.ts'"),
-  type: z.enum(["package-config", "types", "client-base", "client", "index"]),
+  type: z.enum(["package-config", "types", "client-base", "client", "index", "readme"]),
   description: z
     .string()
     .describe("Brief description of what this file should contain"),
