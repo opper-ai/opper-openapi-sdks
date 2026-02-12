@@ -75,6 +75,60 @@ jobs:
 |--------|-------------|
 | `sdk-dir` | Path to generated SDK |
 
+### Auto-publish to a separate SDK repo
+
+A common pattern is to keep the generated SDK in its own repo so consumers can install it directly. The API repo generates the SDK on merge and pushes it to the SDK repo.
+
+**Setup:**
+
+1. Create a separate repo for the SDK (e.g. `your-org/your-api-sdk`)
+2. Create a [fine-grained personal access token](https://github.com/settings/tokens?type=beta) with `contents: write` permission on the SDK repo
+3. Add it as `SDK_REPO_TOKEN` in the API repo's secrets
+4. Add `OPPER_API_KEY` to the API repo's secrets
+
+**Workflow** (in your API repo):
+
+```yaml
+name: Generate SDK
+
+on:
+  push:
+    branches: [main]
+    paths: [openapi.yaml]
+
+jobs:
+  sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: opper-ai/opper-openapi-sdks@v1
+        id: generate
+        with:
+          spec: ./openapi.yaml
+          opper-api-key: ${{ secrets.OPPER_API_KEY }}
+
+      - uses: actions/checkout@v4
+        with:
+          repository: your-org/your-api-sdk
+          path: ./sdk-repo
+          token: ${{ secrets.SDK_REPO_TOKEN }}
+
+      - name: Update SDK repo
+        env:
+          SDK_DIR: ${{ steps.generate.outputs.sdk-dir }}
+        run: |
+          rsync -a --delete --exclude .git "$SDK_DIR/" ./sdk-repo/
+          cd sdk-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "chore: regenerate SDK from $(git -C .. rev-parse --short HEAD)"
+          git push
+```
+
+The SDK repo can then have its own CI to run tests, tag releases, and publish to npm.
+
 ## Caching
 
 The tool caches generated files based on content hashes. When you re-run `generate`:
