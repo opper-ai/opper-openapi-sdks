@@ -75,14 +75,14 @@ jobs:
 |--------|-------------|
 | `sdk-dir` | Path to generated SDK |
 
-### Auto-publish to a separate SDK repo
+### Auto-update a separate SDK repo
 
-A common pattern is to keep the generated SDK in its own repo so consumers can install it directly. The API repo generates the SDK on merge and pushes it to the SDK repo.
+A common pattern is to keep the generated SDK in its own repo so consumers can install it directly. The API repo generates the SDK on merge and opens a PR on the SDK repo with the changes.
 
 **Setup:**
 
 1. Create a separate repo for the SDK (e.g. `your-org/your-api-sdk`)
-2. Create a [fine-grained personal access token](https://github.com/settings/tokens?type=beta) with `contents: write` permission on the SDK repo
+2. Create a [fine-grained personal access token](https://github.com/settings/tokens?type=beta) with `contents: write` and `pull_requests: write` permissions on the SDK repo
 3. Add it as `SDK_REPO_TOKEN` in the API repo's secrets
 4. Add `OPPER_API_KEY` to the API repo's secrets
 
@@ -114,20 +114,24 @@ jobs:
           path: ./sdk-repo
           token: ${{ secrets.SDK_REPO_TOKEN }}
 
-      - name: Update SDK repo
+      - name: Copy generated SDK
         env:
           SDK_DIR: ${{ steps.generate.outputs.sdk-dir }}
-        run: |
-          rsync -a --delete --exclude .git "$SDK_DIR/" ./sdk-repo/
-          cd sdk-repo
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --quiet || git commit -m "chore: regenerate SDK from $(git -C .. rev-parse --short HEAD)"
-          git push
+        run: rsync -a --delete --exclude .git "$SDK_DIR/" ./sdk-repo/
+
+      - name: Open PR on SDK repo
+        uses: peter-evans/create-pull-request@v7
+        with:
+          path: ./sdk-repo
+          token: ${{ secrets.SDK_REPO_TOKEN }}
+          branch: update-sdk
+          title: 'chore: update SDK from API spec'
+          body: |
+            Auto-generated from API spec change in ${{ github.repository }}@${{ github.sha }}.
+          commit-message: 'chore: regenerate SDK from ${{ github.repository }}@${{ github.sha }}'
 ```
 
-The SDK repo can then have its own CI to run tests, tag releases, and publish to npm.
+If the spec hasn't changed, no PR is created. If a PR already exists, it's updated in place. The SDK repo can have its own CI to run tests before merging.
 
 ## Caching
 
