@@ -1,0 +1,81 @@
+name: 'Opper OpenAPI SDKs'
+description: 'Generate SDKs from OpenAPI spec using AI agents'
+
+branding:
+  icon: 'package'
+  color: 'green'
+
+inputs:
+  spec:
+    description: 'Path to OpenAPI spec file'
+    required: true
+  output:
+    description: 'Output directory'
+    default: './sdk'
+  language:
+    description: 'Target language (typescript, python, go, etc.)'
+    default: 'typescript'
+  instructions:
+    description: 'Custom generation instructions'
+  model:
+    description: 'LLM model to use'
+  verify:
+    description: 'Run verification after generation'
+    default: 'true'
+  opper-api-key:
+    description: 'Opper API key'
+    required: true
+
+outputs:
+  sdk-dir:
+    description: 'Path to generated SDK'
+    value: ${{ steps.run.outputs.sdk-dir }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      shell: bash
+      run: npm ci
+      working-directory: ${{ github.action_path }}
+
+    - name: Build
+      shell: bash
+      run: npm run build
+      working-directory: ${{ github.action_path }}
+
+    - name: Generate SDK
+      id: run
+      shell: bash
+      env:
+        OPPER_API_KEY: ${{ inputs.opper-api-key }}
+        INPUT_SPEC: ${{ inputs.spec }}
+        INPUT_OUTPUT: ${{ inputs.output }}
+        INPUT_LANGUAGE: ${{ inputs.language }}
+        INPUT_INSTRUCTIONS: ${{ inputs.instructions }}
+        INPUT_MODEL: ${{ inputs.model }}
+        INPUT_VERIFY: ${{ inputs.verify }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        ARGS=(--spec "$INPUT_SPEC" --output "$INPUT_OUTPUT" --language "$INPUT_LANGUAGE")
+
+        if [ -n "$INPUT_INSTRUCTIONS" ]; then
+          ARGS+=(--instructions "$INPUT_INSTRUCTIONS")
+        fi
+
+        if [ -n "$INPUT_MODEL" ]; then
+          ARGS+=(--model "$INPUT_MODEL")
+        fi
+
+        if [ "$INPUT_VERIFY" = "false" ]; then
+          ARGS+=(--no-verify)
+        fi
+
+        node "$ACTION_PATH/dist/cli.js" generate "${ARGS[@]}"
+
+        echo "sdk-dir=$INPUT_OUTPUT" >> "$GITHUB_OUTPUT"
