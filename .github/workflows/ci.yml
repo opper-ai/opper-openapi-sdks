@@ -25,8 +25,36 @@ jobs:
       - run: npm test
       - run: npm run build
 
-  release:
+  demo:
     needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Generate Petstore SDK
+        env:
+          OPPER_API_KEY: ${{ secrets.OPPER_API_KEY }}
+        run: node dist/cli.js generate --spec test/fixtures/petstore.yaml --output /tmp/petstore-sdk
+
+      - name: Verify generated SDK compiles
+        run: |
+          cd /tmp/petstore-sdk
+          npm install
+          npx tsc --noEmit
+
+      - name: Verify README exists
+        run: test -f /tmp/petstore-sdk/README.md
+
+  release:
+    needs: [check, demo]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
