@@ -15,7 +15,7 @@ export interface Config {
 }
 
 const CONFIG_FILENAME = "opper-sdks.config.json";
-const DEFAULT_MODEL = "openai/gpt-5.2";
+const DEFAULT_MODEL = "anthropic/claude-opus-4.6";
 
 export async function loadConfig(
   cliOptions: Partial<Config> & { verify?: boolean }

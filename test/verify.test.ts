@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { typescript } from "../src/languages/typescript.js";
+import { runVerify } from "../src/verify.js";
 
 describe("typescript.verify.parseErrors", () => {
   const parseErrors = typescript.verify!.parseErrors;
@@ -35,5 +36,15 @@ Done in 2.3s`;
     const errors = parseErrors(output);
     expect(errors).toHaveLength(1);
     expect(errors[0].file).toBe("src/types.ts");
+  });
+});
+
+describe("runVerify", () => {
+  it("returns empty array for language without verify", async () => {
+    const errors = await runVerify(
+      { name: "test", extensions: [], plannerInstructions: "", writerInstructions: "", fileTypes: [] },
+      "/tmp"
+    );
+    expect(errors).toEqual([]);
   });
 });
