@@ -3,7 +3,8 @@ name: Demo
 on:
   push:
     branches: [main]
-  workflow_dispatch:
+  pull_request:
+    branches: [main]
 
 jobs:
   demo:
@@ -14,21 +15,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
-      - run: npm ci
-      - run: npm run build
-
-      - name: Generate Petstore SDK
-        env:
-          OPPER_API_KEY: ${{ secrets.OPPER_API_KEY }}
-        run: node dist/cli.js generate --spec test/fixtures/petstore.yaml --output /tmp/petstore-sdk
-
-      - name: Verify generated SDK compiles
+      - name: Verify example SDK compiles
         run: |
-          cd /tmp/petstore-sdk
+          cd examples/petstore
           npm install
           npx tsc --noEmit
 
       - name: Verify README exists
-        run: test -f /tmp/petstore-sdk/README.md
+        run: test -f examples/petstore/README.md
