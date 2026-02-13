@@ -133,6 +133,85 @@ jobs:
 
 If the spec hasn't changed, no PR is created. If a PR already exists, it's updated in place. The SDK repo can have its own CI to run tests before merging.
 
+### Cross-repo dispatch pattern
+
+An alternative approach where the SDK repo owns its own generation. The API repo just signals that the spec has changed, and the SDK repo fetches the spec and generates.
+
+This is useful when:
+- The API spec is generated during CI (not checked into the repo)
+- You want the SDK repo to control its own generation config (instructions, model, language)
+- You want to keep API repo secrets minimal (no `OPPER_API_KEY` needed)
+
+**API repo workflow** (triggers after build):
+
+```yaml
+# In your CI workflow, add a job that runs after the spec is built/uploaded
+trigger-sdk:
+  runs-on: ubuntu-latest
+  needs: [build]  # job that uploads openapi spec as artifact
+  if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  steps:
+    - name: Trigger SDK generation
+      env:
+        GH_TOKEN: ${{ secrets.SDK_REPO_TOKEN }}
+        RUN_ID: ${{ github.run_id }}
+        SHA: ${{ github.sha }}
+      run: |
+        gh api repos/your-org/your-api-sdk/dispatches \
+          -f event_type=spec-updated \
+          -f "client_payload[run_id]=$RUN_ID" \
+          -f "client_payload[sha]=$SHA"
+```
+
+**SDK repo workflow** (`generate.yml`):
+
+```yaml
+name: Generate SDK
+on:
+  repository_dispatch:
+    types: [spec-updated]
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download OpenAPI spec from API CI
+        env:
+          GH_TOKEN: ${{ secrets.API_REPO_TOKEN }}
+          RUN_ID: ${{ github.event.client_payload.run_id }}
+        run: |
+          if [ -n "$RUN_ID" ]; then
+            gh run download "$RUN_ID" -n openapi-spec -R your-org/your-api
+          else
+            gh run download -n openapi-spec -R your-org/your-api
+          fi
+
+      - uses: opper-ai/opper-openapi-sdks@v1
+        with:
+          spec: ./openapi.yaml
+          output: ./typescript
+          opper-api-key: ${{ secrets.OPPER_API_KEY }}
+
+      - run: rm -f openapi.yaml
+
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.API_REPO_TOKEN }}
+          branch: update-sdk
+          title: 'chore: update TypeScript SDK from API spec'
+          body: |
+            Auto-generated from spec change in your-org/your-api@${{ github.event.client_payload.sha || 'manual' }}.
+          commit-message: 'chore: regenerate TypeScript SDK'
+```
+
+**Secrets needed:**
+- API repo: `SDK_REPO_TOKEN` — PAT with `contents: write` on the SDK repo (for `repository_dispatch`)
+- SDK repo: `API_REPO_TOKEN` — PAT with `actions: read` on the API repo (for artifact download) and `contents: write` + `pull_requests: write` on itself (for PR creation)
+- SDK repo: `OPPER_API_KEY` — for SDK generation
+
 ## Caching
 
 The tool caches generated files based on content hashes. When you re-run `generate`:
