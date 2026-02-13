@@ -16,7 +16,8 @@ export async function runVerify(
   const absOutputDir = resolve(outputDir);
 
   try {
-    await execFileAsync(cmd, [...args, absOutputDir], {
+    await execFileAsync(cmd, [...args, "."], {
+      cwd: absOutputDir,
       timeout: 30_000,
     });
     return [];
