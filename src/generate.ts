@@ -1,5 +1,7 @@
-import { mkdir, writeFile, unlink } from "fs/promises";
+import { mkdir, writeFile, unlink, access } from "fs/promises";
 import { resolve, join, dirname } from "path";
+import { execFile } from "child_process";
+import { promisify } from "util";
 import type { Config } from "./config.js";
 import { buildSpecIndex } from "./spec-index.js";
 import { readManifest, writeManifest, sha256 } from "./manifest.js";
@@ -10,6 +12,8 @@ import { createWriterAgent } from "./agents/writer.js";
 import { computeSectionHash } from "./hashing.js";
 import { readExistingFiles } from "./existing-sdk.js";
 import { runVerify } from "./verify.js";
+
+const execFileAsync = promisify(execFile);
 
 export async function generate(config: Config): Promise<void> {
   // 1. Parse spec
@@ -175,8 +179,9 @@ export async function generate(config: Config): Promise<void> {
     }
   }
 
-  // 9. Verification loop
+  // 9. Install dependencies + verification loop
   if (config.verify && config.languageProfile.verify) {
+    await installDependencies(outputDir);
     await runVerifyLoop(config, outputDir, plan, generatedFiles, specIndex);
   }
 
@@ -305,4 +310,24 @@ async function updateManifest(
   }
 
   await writeManifest(outputDir, newManifest);
+}
+
+async function installDependencies(outputDir: string): Promise<void> {
+  const pkgPath = join(outputDir, "package.json");
+  try {
+    await access(pkgPath);
+  } catch {
+    return; // No package.json, nothing to install
+  }
+
+  console.log("\nInstalling dependencies...");
+  try {
+    await execFileAsync("npm", ["install", "--ignore-scripts"], {
+      cwd: outputDir,
+      timeout: 60_000,
+    });
+  } catch (err: unknown) {
+    const stderr = (err as { stderr?: string }).stderr ?? "";
+    console.warn(`Warning: npm install failed: ${stderr.slice(0, 200)}`);
+  }
 }
