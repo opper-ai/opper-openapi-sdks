@@ -118,11 +118,17 @@ README.md (type: "readme"):
 - Write in Markdown format
 
 Examples (type: "examples"):
-- Use read_generated_file to read src/index.ts to get the unified client class name and imports
+- FIRST read src/index.ts, src/client-base.ts, src/types.ts, and ALL src/clients/*.ts files using read_generated_file
+- You MUST know the exact method names, parameter types, and return types before writing any example code
 - Write a single self-contained TypeScript file that demonstrates real API usage
 - Import from the package using relative path '../src/index.js'
 - Read the API key from process.env (e.g. process.env.OPPER_API_KEY or process.env.API_KEY)
 - Show 2-3 realistic API calls using the unified client (e.g. client.pets.listPets())
+- Every API call MUST be wrapped in try/catch with ApiError handling
+- Skip internal/infrastructure endpoints (health checks, system status) — focus on user-facing API calls
+- For streaming methods that return AsyncGenerator or AsyncIterable, use: for await (const chunk of await client.x.method(...))
+- Match method names EXACTLY as defined in the client files — do NOT invent method names
+- Match parameter shapes EXACTLY as defined in the types — check whether fields are strings, objects, etc.
 - Include console.log output so the user can see results
 - Add brief comments explaining each step
 - The example must be runnable with: npx tsx examples/basic-usage.ts
