@@ -4,7 +4,8 @@ export type SdkFileType =
   | "client-base"
   | "client"
   | "index"
-  | "readme";
+  | "readme"
+  | "examples";
 
 export interface VerifyError {
   file: string;

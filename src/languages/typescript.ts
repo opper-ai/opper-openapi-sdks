@@ -25,8 +25,9 @@ File structure (MUST include all of these):
 - src/types.ts for all interfaces and type definitions (type: "types", order: 1)
 - src/client-base.ts for the base HTTP client class (type: "client-base", order: 2)
 - src/clients/{tag-slug}.ts for each tag's client class (type: "client", order: 3)
-- src/index.ts that re-exports everything (type: "index", order: 4)
+- src/index.ts with a unified client class and re-exports (type: "index", order: 4)
 - README.md at root (type: "readme", id: "readme", order: 5)
+- examples/basic-usage.ts (type: "examples", id: "examples", order: 6)
 
 Naming conventions:
 - Use PascalCase for types and interfaces
@@ -52,7 +53,11 @@ tsconfig.json must include:
 - "include": ["src"]
 
 Each client file imports from types.ts and extends the base client.
-The index file re-exports the main client class and all types.`,
+The index file MUST define a unified client class (named after the API, e.g. PetstoreClient, TaskApiClient) that:
+- Takes ClientConfig in its constructor
+- Exposes each tag client as a property (e.g. client.pets, client.store, client.functions)
+- Instantiates each sub-client with the shared config
+The index file also re-exports all sub-clients, types, and ClientConfig.`,
 
   writerInstructions: `You are writing TypeScript SDK code. Follow these rules:
 
@@ -93,6 +98,13 @@ Types (src/types.ts):
 - Include JSDoc comments from schema descriptions
 - Define ApiError class here (extends Error, has status, statusText, body properties)
 
+Index file (src/index.ts):
+- Use read_generated_file to read all client files so you know the exact class names and imports
+- Define a unified client class named after the API (e.g. PetstoreClient) that takes ClientConfig
+- Add a readonly property for each tag client using camelCase (e.g. pets, store, functions)
+- In the constructor, instantiate each sub-client with the shared config
+- Re-export the unified client, all sub-clients, all types, ClientConfig, and RequestOptions
+
 tsconfig.json:
 - When writing tsconfig.json, output valid JSON with the exact settings from the plan
 
@@ -104,6 +116,16 @@ README.md (type: "readme"):
 - Client usage: document each client class and its methods with brief examples
 - Types reference: list the main exported types/interfaces
 - Write in Markdown format
+
+Examples (type: "examples"):
+- Use read_generated_file to read src/index.ts to get the unified client class name and imports
+- Write a single self-contained TypeScript file that demonstrates real API usage
+- Import from the package using relative path '../src/index.js'
+- Read the API key from process.env (e.g. process.env.OPPER_API_KEY or process.env.API_KEY)
+- Show 2-3 realistic API calls using the unified client (e.g. client.pets.listPets())
+- Include console.log output so the user can see results
+- Add brief comments explaining each step
+- The example must be runnable with: npx tsx examples/basic-usage.ts
 
 Do NOT:
 - Import from external packages (except devDependencies in package.json)
@@ -117,5 +139,5 @@ Do NOT:
     parseErrors: parseTscErrors,
   },
 
-  fileTypes: ["package-config", "types", "client-base", "client", "index", "readme"],
+  fileTypes: ["package-config", "types", "client-base", "client", "index", "readme", "examples"],
 };

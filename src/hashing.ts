@@ -55,6 +55,7 @@ export function computeSectionHash(
       break;
 
     case "readme":
+    case "examples":
       parts.push(specIndex.info);
       parts.push(specIndex.servers);
       parts.push(Array.from(specIndex.pathsByTag.keys()).sort());

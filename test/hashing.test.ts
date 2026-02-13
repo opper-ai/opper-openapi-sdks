@@ -81,6 +81,15 @@ describe("computeSectionHash", () => {
     expect(hash).toMatch(/^[a-f0-9]{64}$/);
   });
 
+  it("produces consistent hash for examples covering full spec", async () => {
+    const index = await buildSpecIndex(FIXTURE);
+    const file = makeFile({ type: "examples" });
+    const hash1 = computeSectionHash(file, index);
+    const hash2 = computeSectionHash(file, index);
+    expect(hash1).toBe(hash2);
+    expect(hash1).toMatch(/^[a-f0-9]{64}$/);
+  });
+
   it("produces consistent hash for readme covering full spec", async () => {
     const index = await buildSpecIndex(FIXTURE);
     const file = makeFile({ type: "readme" });
