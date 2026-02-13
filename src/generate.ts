@@ -204,7 +204,7 @@ async function runVerifyLoop(
   generatedFiles: Map<string, string>,
   specIndex: Awaited<ReturnType<typeof buildSpecIndex>>
 ): Promise<void> {
-  const maxAttempts = 2;
+  const maxAttempts = 3;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     console.log(`\nVerifying (attempt ${attempt}/${maxAttempts})...`);
